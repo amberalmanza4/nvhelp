@@ -8,6 +8,7 @@ workflows:
     scripts:
       - name: Build the unsigned app
         script: |
+          cd CommunicationAssistant
           xcodebuild archive \
             -project CommunicationAssistant.xcodeproj \
             -scheme CommunicationAssistant \
