@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Assistant</title>
+    <style>
+        :root {
+            --page-bg: #f5f6f8;
+            --card-bg: #ffffff;
+            --text: #242424;
+            --muted: #666;
+            --border: #d8dbe0;
+            --radius: 18px;
+            --shadow: 0 3px 10px rgba(0, 0, 0, .09);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            background: var(--page-bg);
+            min-height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                         "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            margin: 0;
+            padding: max(18px, env(safe-area-inset-top))
+                     max(16px, env(safe-area-inset-right))
+                     max(24px, env(safe-area-inset-bottom))
+                     max(16px, env(safe-area-inset-left));
+            text-align: center;
+            min-height: 100dvh;
+            overscroll-behavior-y: none;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+            -webkit-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            text-align: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1 {
+            color: var(--text);
+            font-size: clamp(27px, 7vw, 34px);
+            line-height: 1.12;
+            letter-spacing: -0.5px;
+            margin: 4px 0 16px;
+        }
+
+        /* Opening screen */
+        .welcome-text {
+            font-size: 18px;
+            line-height: 1.45;
+            margin: 0 auto 22px;
+            max-width: 520px;
+        }
+
+        .emergency-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: min(46vh, 310px);
+            margin: 0 auto;
+            padding: 28px 20px;
+            border: 0;
+            border-radius: 22px;
+            background: #d62828;
+            color: #fff;
+            font-size: clamp(32px, 9vw, 42px);
+            font-weight: 800;
+            line-height: 1.12;
+            box-shadow: 0 6px 14px rgba(0,0,0,.14);
+            cursor: pointer;
+        }
+
+        /* Choice screen */
+        .choice-text {
+            font-size: 18px;
+            line-height: 1.45;
+            margin: 0 auto 22px;
+            max-width: 520px;
+        }
+
+        .choice-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            width: 100%;
+            margin: 0 0 18px;
+        }
+
+        .choice-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: clamp(154px, 37vw, 200px);
+            padding: 20px 12px;
+            border: 0;
+            border-radius: var(--radius);
+            color: #fff;
+            font-size: clamp(20px, 5.5vw, 25px);
+            font-weight: 750;
+            line-height: 1.15;
+            box-shadow: 0 5px 10px rgba(0,0,0,.12);
+            cursor: pointer;
+        }
+
+        .choice-button-content {
+            display: grid;
+            justify-items: center;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .choice-icon {
+            font-size: 1.25em;
+            line-height: 1;
+        }
+
+        .board-choice { background: #4da6ff; }
+        .contact-choice { background: #ff4d4d; }
+
+        /* Communication mode switch */
+        .mode-switch {
+            width: 100%;
+            margin: 0 0 14px;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 3px 8px rgba(0,0,0,.06);
+        }
+
+        .mode-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .mode-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .mode-button {
+            min-height: 50px;
+            padding: 10px 8px;
+            border: 2px solid var(--border);
+            border-radius: 11px;
+            background: #f8f9fa;
+            color: #444;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+
+        .mode-button.active {
+            border-color: #333;
+            background: #333;
+            color: #fff;
+        }
+
+        /* Communication board */
+        .display-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 112px;
+            margin-bottom: 14px;
+            padding: 18px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            font-size: clamp(21px, 6vw, 27px);
+            line-height: 1.3;
+            font-weight: 750;
+            box-shadow: 0 3px 8px rgba(0,0,0,.08);
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            width: 100%;
+            margin: 0 0 18px;
+        }
+
+        .btn-grid button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: clamp(145px, 36vw, 190px);
+            padding: 18px 10px;
+            border: 0;
+            border-radius: 16px;
+            color: #fff;
+            font-size: clamp(17px, 4.7vw, 21px);
+            font-weight: 750;
+            line-height: 1.2;
+            box-shadow: 0 4px 8px rgba(0,0,0,.10);
+            cursor: pointer;
+        }
+
+        .btn-red { background: #ff4d4d; }
+        .btn-orange { background: #ffa64d; }
+        .btn-blue { background: #4da6ff; }
+        .btn-green { background: #5cd65c; }
+
+        .selected-button {
+            outline: 4px solid #111;
+            outline-offset: 3px;
+        }
+
+        .btn-grid.message-selected button:not(.selected-button) {
+            display: none;
+        }
+
+        .btn-grid.message-selected .selected-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reset-message-button {
+            display: none;
+            width: 100%;
+            min-height: 54px;
+            margin: 0 0 14px;
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 13px;
+            background: #333;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 750;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+        }
+
+        .reset-message-button.visible {
+            display: flex;
+        }
+
+        .contact-card,
+        .info-card {
+            width: 100%;
+            margin: 0 0 18px;
+            padding: 22px 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+            text-align: left;
+        }
+
+        .contact-card h2,
+        .info-card h2 {
+            margin: 0 0 14px;
+            color: var(--text);
+            font-size: 22px;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .contact-card p,
+        .info-card p {
+            margin: 0 0 16px;
+            font-size: 17px;
+            line-height: 1.5;
+        }
+
+        .sms-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 64px;
+            padding: 14px 16px;
+            border: 0;
+            border-radius: 14px;
+            background: #d62828;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 800;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+        }
+        /* Secondary actions */
+        .confused-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 56px;
+            margin: 0 0 14px;
+            padding: 12px 16px;
+            border: 2px solid #8a8d93;
+            border-radius: 12px;
+            background: #fff;
+            color: #3f4145;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.25;
+            cursor: pointer;
+        }
+
+        .back-button {
+            width: 100%;
+            min-height: 50px;
+            padding: 10px 18px;
+            border: 2px solid #8a8d93;
+            border-radius: 12px;
+            background: #fff;
+            color: #3f4145;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .small-note {
+            text-align: center;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            color: var(--muted);
+            margin-top: 14px;
+        }
+
+        button:active {
+            transform: scale(.985);
+        }
+
+        button:focus-visible {
+            outline: 4px solid #111;
+            outline-offset: 3px;
+        }
+
+        @media (min-width: 601px) {
+            body {
+                padding-top: 32px;
+                padding-bottom: 32px;
+            }
+
+            .emergency-button {
+                max-width: 500px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            body {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .choice-grid,
+            .btn-grid {
+                gap: 10px;
+            }
+
+            .choice-button {
+                min-height: 175px;
+                padding: 16px 8px;
+            }
+
+            .btn-grid button {
+                min-height: 150px;
+                padding: 14px 7px;
+                font-size: 16px;
+            }
+
+            .contact-card,
+            .info-card {
+                padding: 20px 16px;
+            }
+
+            .contact-card p,
+            .info-card p {
+                font-size: 16px;
+            }
+        }
+
+        /* Portrait phones need readable, single-column choices rather than
+           two narrow panels competing for the same limited width. */
+        @media (orientation: portrait) and (max-width: 600px) {
+            .choice-grid,
+            .btn-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .choice-button {
+                min-height: 136px;
+            }
+
+            .btn-grid button {
+                min-height: 122px;
+                padding: 18px 20px;
+                font-size: clamp(18px, 5.3vw, 22px);
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .emergency-button {
+                min-height: 150px;
+            }
+
+            .choice-button {
+                min-height: 140px;
+            }
+
+            .btn-grid button {
+                min-height: 125px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            button {
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="app">
+
+    <!-- INITIAL SCREEN -->
+    <section id="home" class="screen active">
+        <h1>Communication Assistant</h1>
+        <p class="welcome-text">
+            Need help? Press the button below to choose what you need.
+        </p>
+
+        <button class="emergency-button" onclick="showScreen('choices')">
+            🆘<br>NEED HELP
+        </button>
+
+    </section>
+
+    <!-- CHOICE SCREEN -->
+    <section id="choices" class="screen">
+        <h1>What do you need?</h1>
+        <p class="choice-text">
+            Choose the option that best helps you right now.
+        </p>
+
+        <div class="choice-grid">
+            <button class="choice-button board-choice" onclick="showScreen('board')">
+                <span class="choice-button-content">
+                    <span class="choice-icon" aria-hidden="true">💬</span>
+                    <span>Communication Board</span>
+                </span>
+            </button>
+
+            <button class="choice-button contact-choice" onclick="showScreen('contact')">
+                <span class="choice-button-content">
+                    <span class="choice-icon" aria-hidden="true">📱</span>
+                    <span>Alert a Trusted Contact</span>
+                </span>
+            </button>
+        </div>
+
+        <button class="confused-button" onclick="showScreen('info')">
+            Handed this phone and confused? Click here.
+        </button>
+
+        <button class="back-button" onclick="showScreen('home')">← Back</button>
+    </section>
+    <!-- COMMUNICATION BOARD -->
+    <section id="board" class="screen">
+        <h1>Communication Board</h1>
+
+        <div class="mode-switch" role="group" aria-label="Communication mode">
+            <span class="mode-label">How should the message be shared?</span>
+            <div class="mode-options">
+                <button id="displayMode" class="mode-button active" onclick="setMode('display')">
+                    👀 Show on Screen
+                </button>
+                <button id="speakMode" class="mode-button" onclick="setMode('speak')">
+                    🔊 Read Aloud
+                </button>
+            </div>
+        </div>
+
+        <div id="display" class="display-screen" aria-live="polite">
+            Choose a message below.
+        </div>
+
+        <div id="messageButtons" class="btn-grid">
+            <button class="btn-red" onclick="showMessage('I am having an episode and cannot speak. Please, stay with me.', this)">
+
+                I am having an episode and cannot speak. Please, stay with me.
+            </button>
+
+            <button class="btn-orange" onclick="showMessage('I cannot speak right now and would like some space, but I am not ignoring you.', this)">
+                I cannot speak right now and would like some space, but I am not ignoring you.
+            </button>
+
+            <button class="btn-blue" onclick="showMessage('Please, don\'t touch me right now.', this)">
+                Please, don't touch me right now.
+            </button>
+
+            <button class="btn-green" onclick="showMessage('I am feeling better now, but I would still like to stay quiet for a moment.', this)">
+                I am feeling better now, but I would still like to stay quiet for a moment.
+            </button>
+        </div>
+
+            ... (truncated for brevity) ...
