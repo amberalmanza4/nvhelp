@@ -1,0 +1,26 @@
+workflows:
+  build-unsigned-ios-app:
+    name: Build Communication Assistant
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    scripts:
+      - name: Build the unsigned app
+        script: |
+          xcodebuild archive \
+            -project CommunicationAssistant.xcodeproj \
+            -scheme CommunicationAssistant \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath "$CM_BUILD_DIR/CommunicationAssistant.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+      - name: Package the IPA for Sideloadly
+        script: |
+          mkdir -p "$CM_BUILD_DIR/Payload"
+          cp -R "$CM_BUILD_DIR/CommunicationAssistant.xcarchive/Products/Applications/CommunicationAssistant.app" "$CM_BUILD_DIR/Payload/"
+          cd "$CM_BUILD_DIR"
+          zip -r "CommunicationAssistant-unsigned.ipa" Payload
+    artifacts:
+      - $CM_BUILD_DIR/CommunicationAssistant-unsigned.ipa
